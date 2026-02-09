@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Midnight & Rose Gold Sanctuary</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Great+Vibes&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'deep-velvet': '#1a050b',
+                        'rose-gold': '#b76e79',
+                        'victorian-gold': '#d4af37',
+                        'dark-berry': '#2c000e',
+                        'soft-rose': '#bc5a68',
+                    },
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'serif'],
+                        sans: ['Montserrat', 'sans-serif'],
+                        cursive: ['"Great Vibes"', 'cursive'],
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'float-delayed': 'float 6s ease-in-out 3s infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-slow': 'bounce 3s infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-15px) rotate(2deg)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #1a050b;
+            color: #fce7f3;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        /* Loading Screen */
+        #loader {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at center, #2c000e, #000);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1s ease;
+        }
+
+        /* 3D Envelope Flip */
+        .perspective-1000 { perspective: 1000px; }
+        .preserve-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        
+        .envelope-inner {
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .envelope-wrapper:hover .envelope-inner,
+        .envelope-wrapper.is-open .envelope-inner {
+            transform: rotateY(180deg);
+        }
+
+        /* Vintage Paper Texture */
+        .vintage-paper {
+            background-color: #f4e4bc;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.4'/%3E%3C/svg%3E");
+            box-shadow: inset 0 0 80px rgba(88, 56, 30, 0.2), 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* Scrollytelling Fade */
+        .chapter {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s ease-out;
+            filter: blur(5px);
+        }
+        .chapter.visible {
+            opacity: 1;
+            transform: translateY(0);
+            filter: blur(0);
+        }
+
+        /* Cat Specifics */
+        .cat-container {
+            transition: transform 0.1s linear;
+            will-change: transform;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "framer-motion": "https://esm.sh/framer-motion@^12.33.0",
+    "canvas-confetti": "https://esm.sh/canvas-confetti@^1.9.4"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="antialiased selection:bg-rose-500 selection:text-white">
+
+    <!-- Loading Screen -->
+    <div id="loader">
+        <div class="text-center px-4">
+            <h1 class="text-4xl md:text-6xl font-serif text-rose-gold mb-4 animate-pulse">Sanctuary</h1>
+            <p class="text-rose-300/50 font-sans text-sm tracking-widest mb-8">LOADING OUR STORY...</p>
+            <button id="enter-btn" class="px-8 py-3 bg-rose-900 text-rose-100 font-serif border border-rose-500 rounded-full hover:bg-rose-800 transition-all opacity-0 translate-y-4" style="transition: opacity 1s, transform 1s;">
+                ENTER OUR WORLD
+            </button>
+        </div>
+    </div>
+
+    <!-- Background Elements -->
+    <canvas id="rose-petals" class="fixed top-0 left-0 w-full h-full pointer-events-none z-0 mix-blend-screen opacity-60"></canvas>
+    
+    <!-- Music Player -->
+    <div class="fixed bottom-6 right-6 z-50">
+        <button id="music-toggle" class="bg-rose-900/80 w-14 h-14 rounded-full flex items-center justify-center border border-rose-500/50 shadow-[0_0_15px_rgba(225,29,72,0.3)] hover:scale-110 transition-transform">
+            <svg id="music-icon-off" class="w-6 h-6 text-rose-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke-miterlimit="10"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+            <svg id="music-icon-on" class="w-6 h-6 text-rose-200 hidden animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+        </button>
+    </div>
+
+    <main id="app-content" class="relative z-10 hidden">
+        
+        <!-- Section 1: The Genesis (Card Stack) -->
+        <section id="genesis" class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden py-10">
+            <div class="text-center mb-8 z-20 px-4">
+                <h2 class="text-3xl md:text-5xl font-serif text-rose-200 mb-2">How We Began</h2>
+                <p class="text-rose-400/80 font-sans tracking-widest text-xs uppercase">Swipe to Remember • <span id="card-counter" class="text-white font-bold">1</span> of 35</p>
+            </div>
+            
+            <div id="card-stack" class="relative w-[300px] h-[450px] md:w-[350px] md:h-[550px] perspective-1000 z-30">
+                <!-- Cards will be injected here via JS -->
+            </div>
+
+            <div class="absolute bottom-10 text-rose-300/40 text-sm animate-bounce z-20">
+                ↓ Scroll to begin our story
+            </div>
+        </section>
+
+        <!-- Section 2: Scrollytelling -->
+        <section id="story" class="relative py-20 bg-gradient-to-b from-deep-velvet via-[#2e0510] to-deep-velvet">
+            <!-- Sticky Line -->
+            <div class="fixed top-0 left-0 w-full h-1 bg-rose-900/30 z-40">
+                <div id="scroll-progress" class="h-full bg-rose-500 w-0 transition-all duration-100 ease-out"></div>
+            </div>
+
+            <!-- Parallax Cats Container -->
+            <div id="cat-layer" class="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden z-0">
+                <!-- Cats injected via JS -->
+            </div>
+
+            <div class="container mx-auto px-6 relative z-10">
+                <!-- Chapters will be injected via JS -->
+            </div>
+        </section>
+
+        <!-- Section 3: Envelope Grid -->
+        <section id="letters" class="min-h-screen py-24 px-4 flex flex-col items-center justify-center bg-deep-velvet relative">
+            <h2 class="text-4xl md:text-5xl font-serif text-rose-200 mb-4 text-center">Grid of Affection</h2>
+            <p class="text-rose-400/60 font-sans text-sm tracking-widest mb-12">TAP TO REVEAL MY HEART</p>
+            
+            <div id="envelope-grid" class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl w-full">
+                <!-- Envelopes injected via JS -->
+            </div>
+        </section>
+
+        <!-- Section 4: Vintage Letter -->
+        <section id="vintage" class="min-h-screen py-32 px-4 flex items-center justify-center relative">
+            <div class="relative max-w-4xl w-full vintage-paper text-amber-950 p-8 md:p-20 rounded-sm shadow-2xl rotate-1 transform transition-transform hover:rotate-0 duration-700">
+                <!-- Coffee Stains -->
+                <div class="absolute top-0 right-0 w-48 h-48 bg-amber-900/10 rounded-full blur-3xl transform translate-x-10 -translate-y-10 pointer-events-none"></div>
+                
+                <div class="font-serif leading-loose text-lg md:text-xl space-y-8 relative z-10 text-justify">
+                    <p class="text-right italic text-amber-800/80 mb-8 border-b border-amber-900/20 pb-2 inline-block ml-auto">Christmas, 2025</p>
+                    <p class="font-bold text-3xl mb-8 font-cursive text-amber-900">My Dearest Rukmini,</p>
+                    
+                    <p>I am writing this from a future where the silence of the phone has finally been replaced by the steady, comforting rhythm of your breathing beside me. Looking back now, across the vast ocean of time and distance we traversed to get here, I realize with absolute clarity that every mile, every tear shed in the dark, and every second of agonizing waiting was a price I would pay a thousand times over just to hold your hand today.</p>
+                    
+                    <p>They say we bonded by sickness, but I believe we were bonded by soul. Do you remember the days when the screens were our only windows to each other? When I couldn't sense your sadness through the pixels? I promised you then that no matter where I am, I would listen. Standing here now, I can tell you: <strong>I never left.</strong></p>
+                    
+                    <p>You are my first everything. My first late-night call that turned into morning, my first "parasite" that I want to grow old with. You took a boy who was learning to be a man and gave him purpose. You didn't just love me; you refined me.</p>
+                    
+                    <p>I think about Marshall and Lily, and how you said we wouldn't make their mistakes. You were right. We didn't just chase each other; we chased our dreams <em>together</em>. My brilliant Lawyer, my fierce partner, my "Power Couple" equal. You fought through the storms of long distance and the pressure of your own ambition to emerge as a queen. And you chose me to be your "Krishna."</p>
+                    
+                    <p>So, my darling, let us adopt that cat we talked about. Let us go to the temple tomorrow, and every day after. Let us build that French window and fill our home with lilies and roses.</p>
+                    
+                    <p>We have walked through fire, my love, and we were not burnt. We were forged into gold.</p>
+
+                    <p class="mt-12">Yours, yesterday, today, and for every lifetime,</p>
+                    <div class="mt-4 transform -rotate-2">
+                        <p class="font-cursive text-4xl font-bold text-amber-900">Your Loosu</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: The Proposal -->
+        <section id="proposal" class="min-h-screen bg-black flex flex-col items-center justify-center p-4 text-center relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-t from-rose-900/20 via-black to-black z-0"></div>
+            
+            <div id="proposal-content" class="z-10 max-w-3xl w-full transition-opacity duration-1000">
+                <p class="text-rose-300 font-sans tracking-widest uppercase text-sm mb-4">The Final Question</p>
+                <h1 class="text-4xl md:text-6xl font-serif text-white font-bold leading-tight mb-8">
+                    We survived the storms so we could enjoy the sunshine.
+                </h1>
+                
+                <div class="bg-rose-900/10 backdrop-blur-md p-10 rounded-3xl border border-rose-500/20 shadow-2xl mt-12">
+                    <h2 class="text-4xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-rose-200 via-rose-400 to-rose-200 font-serif mb-12 animate-pulse">
+                        Will you be my Valentine?
+                    </h2>
+                    
+                    <div class="flex flex-col md:flex-row items-center justify-center gap-8 relative h-40">
+                        <button onclick="acceptProposal()" class="px-12 py-4 bg-gradient-to-r from-rose-600 to-rose-500 text-white font-bold rounded-full text-xl shadow-[0_0_30px_rgba(225,29,72,0.4)] hover:shadow-[0_0_50px_rgba(225,29,72,0.6)] hover:scale-105 transition-all z-20">
+                            YES, A THOUSAND TIMES
+                        </button>
+                        
+                        <button id="no-btn" class="px-8 py-4 bg-gray-800 text-gray-400 font-bold rounded-full text-lg border border-gray-700 hover:bg-gray-700 z-10 transition-all absolute md:static" style="transition: all 0.2s ease;">
+                            No
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success State (Hidden initially) -->
+            <div id="success-message" class="hidden z-20 space-y-8 animate-float">
+                <div class="w-24 h-24 mx-auto bg-rose-500 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(225,29,72,0.6)] animate-bounce">
+                    <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </div>
+                <h2 class="text-5xl md:text-7xl font-serif text-white">I Knew It.</h2>
+                <p class="text-xl md:text-2xl text-rose-200 font-light max-w-2xl mx-auto leading-relaxed">
+                    Here is to the years we spent finding each other, and the eternity we will spend keeping each other.<br>
+                    <span class="font-bold text-rose-400 mt-4 block text-3xl">I love you.</span>
+                </p>
+            </div>
+        </section>
+
+        <footer class="py-12 text-center text-rose-900/30 text-xs font-sans relative z-10 bg-black">
+            Made with blood, sweat, and infinite love.
+        </footer>
+
+    </main>
+
+    <script>
+        // --- DATA ---
+        // Ensuring 35 images .jpg as per original files
+        const MEMORY_IMAGES = Array.from({ length: 35 }, (_, i) => `text${i + 1}.jpg`);
+        
+        const CHAPTERS = [
+            { id: 1, title: "The Seed", subtitle: "March 23, 2023", text: "It didn't begin with a bang, but with a whisper. We were just two souls drifting in the same orbit, calling it friendship. Do you remember the laughter? The kind that made our stomachs hurt and our eyes water? We built a castle on that laughter, unaware that we were laying the foundation for something that would outlast the stars.\n\nIt was the quiet before the beautiful storm. You were my safe harbor, the person I ran to when the world was too loud, never realizing that you were becoming my world." },
+            { id: 2, title: "The Crossing", subtitle: "Friends to Lovers", text: "Then came the shift. The terrifying, earth-shattering realization that 'friend' was too small a word for what you were to me. It was like standing on the edge of a cliff. To cross that line meant risking the most precious thing I had—us.\n\nIt took a bravery I didn't know I possessed to look you in the eye and let the silence speak. We blurred the lines, trembling not from fear, but from the magnitude of what we were starting. We chose to fall, knowing there might be no catching us, only to find that we learned to fly together." },
+            { id: 3, title: "The Tempest", subtitle: "LDR & Trials", text: "The miles stretched between us like a physical wound. Long distance isn't for the faint of heart, and God knows we were tested. The silence of the phone was heavy. Miles were just numbers, they said, but they felt like walls.\n\nBut we were a fortress. We fought back to back, defending this sacred ground against 'people issues' and family judgment. We proved that no ocean is wide enough and no voice loud enough to drown out the sound of two hearts beating in sync." },
+            { id: 4, title: "The Refinement", subtitle: "My Growth", text: "I looked in the mirror one day and didn't recognize the man staring back. I saw my flaws magnified by the purity of your love. My possessiveness, my control—you deserved better.\n\nSo I went to war with myself. I walked into therapy not because I was broken, but because I wanted to be whole for you. I changed. I am still changing. Not just to keep you, my darling, but to deserve the honor of being the one you choose every single day." },
+            { id: 5, title: "The Ambition", subtitle: "The Law Queen", text: "They call us a Power Couple, but the power comes from you. Watching you navigate your Law Internship is like watching a master at work. Your intellect is a blade—sharp, precise, and dazzling.\n\nYou are the Law Queen. Your ambition doesn't just impress me; it sets my own soul on fire. We are not just lovers; we are partners in conquest. You with your law, me with my path, both of us climbing mountains and planting flags, but always tethered to each other." },
+            { id: 6, title: "The Sanctuary", subtitle: "Exam Support", text: "And now, the exams. I know the weight you feel. But let me tell you what I see: I see a warrior sharpening her sword. This is not a war you will lose. You are the girl who stared down long distance.\n\nConsider this your victory lap. I am here, your sanctuary, your soft place to land. Study hard, my love, but know that your worth is already etched in gold. You will conquer this." },
+            { id: 7, title: "The Eternal Promise", subtitle: "Unbreakable", text: "You are the girl who stayed. When the fire got hot, you didn't run. You are the constant in my chaotic equation.\n\nYou are my home. Not a place with a roof and four walls, but a feeling. A heartbeat. A hand in mine. I promise you this: as long as there is breath in my lungs, you will never walk alone. We are unbreakable. We are infinite. We are us." }
+        ];
+
+        const LOVE_LETTERS = [
+            "I am becoming the man you deserve every single day.",
+            "You are not what they think. You are the girl my heart chose.",
+            "I love you not just for the big moments, but for the quiet ones.",
+            "You are my safest place.",
+            "In a world of noise, you are my clarity.",
+            "Your ambition fuels my own.",
+            "Every storm we weathered only made our roots deeper.",
+            "I would choose you in a hundred lifetimes.",
+            "You are the poem I never knew how to write."
+        ];
+
+        const CAT_URLS = [
+            "https://images.unsplash.com/photo-1543852786-1cf6624b9987?q=80&w=400&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1519052537078-e6302a4968d4?q=80&w=400&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1533743983669-94fa5c4338ec?q=80&w=400&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1513245543132-31f507417b26?q=80&w=400&auto=format&fit=crop"
+        ];
+
+        // --- APP LOGIC ---
+        
+        // 1. Loading & Init
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const btn = document.getElementById('enter-btn');
+                btn.style.opacity = '1';
+                btn.style.transform = 'translateY(0)';
+            }, 500);
+
+            document.getElementById('enter-btn').addEventListener('click', () => {
+                const loader = document.getElementById('loader');
+                loader.style.opacity = '0';
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                    document.getElementById('app-content').classList.remove('hidden');
+                    initMusic();
+                    initParticles();
+                    initCardStack();
+                    renderChapters();
+                    initCats();
+                    renderEnvelopes();
+                    initProposal();
+                }, 1000);
+            });
+        });
+
+        // 2. Music Player
+        function initMusic() {
+            const audio = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
+            audio.loop = true;
+            audio.volume = 0.5;
+            const btn = document.getElementById('music-toggle');
+            const iconOff = document.getElementById('music-icon-off');
+            const iconOn = document.getElementById('music-icon-on');
+            let isPlaying = false;
+
+            btn.addEventListener('click', () => {
+                if (isPlaying) {
+                    audio.pause();
+                    iconOn.classList.add('hidden');
+                    iconOff.classList.remove('hidden');
+                } else {
+                    audio.play().catch(e => console.log("Audio play failed interaction required"));
+                    iconOn.classList.remove('hidden');
+                    iconOff.classList.add('hidden');
+                }
+                isPlaying = !isPlaying;
+            });
+        }
+
+        // 3. Card Stack Logic
+        function initCardStack() {
+            const container = document.getElementById('card-stack');
+            const counter = document.getElementById('card-counter');
+            let cards = [...MEMORY_IMAGES];
+            let removedCount = 0;
+
+            function renderStack() {
+                container.innerHTML = '';
+                // Render top 2 cards
+                const visibleCards = cards.slice(0, 2).reverse(); 
+                
+                visibleCards.forEach((imgSrc, index) => {
+                    const isTop = index === visibleCards.length - 1;
+                    const card = document.createElement('div');
+                    card.className = `absolute top-0 left-0 w-full h-full rounded-2xl shadow-2xl border-4 border-rose-900/50 bg-cover bg-center transition-transform duration-300 ease-out origin-bottom`;
+                    card.style.backgroundImage = `url('${imgSrc}')`;
+                    
+                    if (!isTop) {
+                        card.style.transform = 'scale(0.95) translateY(10px)';
+                        card.style.opacity = '0.5';
+                        card.style.zIndex = '10';
+                    } else {
+                        card.style.cursor = 'grab';
+                        card.style.zIndex = '50';
+                        initDrag(card);
+                    }
+                    container.appendChild(card);
+                });
+                
+                counter.textContent = removedCount + 1;
+                
+                if (cards.length === 0) {
+                    container.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-rose-900/20 rounded-2xl border-2 border-rose-500/30 text-rose-200 font-serif italic p-6 text-center text-xl">And that was just the beginning...</div>`;
+                }
+            }
+
+            function initDrag(element) {
+                let startX = 0;
+                let currentX = 0;
+                let isDragging = false;
+
+                const start = (e) => {
+                    isDragging = true;
+                    startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+                    element.style.transition = 'none';
+                    element.style.cursor = 'grabbing';
+                };
+
+                const move = (e) => {
+                    if (!isDragging) return;
+                    e.preventDefault();
+                    currentX = (e.type.includes('mouse') ? e.clientX : e.touches[0].clientX) - startX;
+                    const rotate = currentX * 0.1;
+                    element.style.transform = `translateX(${currentX}px) rotate(${rotate}deg)`;
+                    element.style.opacity = `${1 - Math.abs(currentX) / 500}`;
+                };
+
+                const end = () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    element.style.cursor = 'grab';
+                    element.style.transition = 'transform 0.3s ease-out, opacity 0.3s';
+
+                    if (Math.abs(currentX) > 100) {
+                        const endX = currentX > 0 ? 1000 : -1000;
+                        element.style.transform = `translateX(${endX}px) rotate(${currentX * 0.1}deg)`;
+                        element.style.opacity = '0';
+                        setTimeout(() => {
+                            cards.shift();
+                            removedCount++;
+                            renderStack();
+                        }, 300);
+                    } else {
+                        element.style.transform = `translateX(0) rotate(0)`;
+                        element.style.opacity = '1';
+                    }
+                };
+
+                element.addEventListener('mousedown', start);
+                window.addEventListener('mousemove', move);
+                window.addEventListener('mouseup', end);
+                
+                element.addEventListener('touchstart', start);
+                window.addEventListener('touchmove', move);
+                window.addEventListener('touchend', end);
+            }
+
+            renderStack();
+        }
+
+        // 4. Scrollytelling
+        function renderChapters() {
+            const container = document.querySelector('#story .container');
+            
+            CHAPTERS.forEach((chapter, index) => {
+                const div = document.createElement('div');
+                div.className = 'chapter min-h-screen flex flex-col items-center justify-center p-6 mb-12';
+                div.innerHTML = `
+                    <div class="max-w-3xl text-center space-y-8 bg-black/40 backdrop-blur-sm p-8 md:p-12 rounded-3xl border border-rose-500/10 shadow-2xl transform transition-transform duration-700 hover:scale-[1.02]">
+                        <h2 class="text-sm md:text-base font-sans tracking-[0.3em] text-rose-300 uppercase">Chapter ${chapter.id} • ${chapter.subtitle}</h2>
+                        <h1 class="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-100 to-victorian-gold">${chapter.title}</h1>
+                        <div class="w-24 h-px bg-gradient-to-r from-transparent via-rose-500 to-transparent mx-auto"></div>
+                        <p class="text-lg md:text-xl font-serif leading-loose text-rose-50/90 whitespace-pre-wrap font-light text-justify">${chapter.text}</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.2 });
+
+            document.querySelectorAll('.chapter').forEach(el => observer.observe(el));
+
+            window.addEventListener('scroll', () => {
+                const section = document.getElementById('story');
+                const start = section.offsetTop;
+                const height = section.offsetHeight;
+                const scroll = window.scrollY;
+                const progress = Math.min(100, Math.max(0, ((scroll - start) / (height - window.innerHeight)) * 100));
+                document.getElementById('scroll-progress').style.width = `${progress}%`;
+            });
+        }
+
+        // 5. Interactive Cats with Enhanced Animation & Interaction
+        function initCats() {
+            const layer = document.getElementById('cat-layer');
+            const positions = [
+                { top: '10%', left: '5%', speed: 0.2, anim: 'animate-float' },
+                { top: '35%', right: '5%', speed: 0.4, anim: 'animate-float-delayed' },
+                { top: '60%', left: '8%', speed: 0.3, anim: 'animate-float' },
+                { top: '85%', right: '10%', speed: 0.5, anim: 'animate-float-delayed' }
+            ];
+
+            const catsElements = [];
+
+            CAT_URLS.forEach((url, i) => {
+                const pos = positions[i % positions.length];
+                const catContainer = document.createElement('div');
+                catContainer.className = `cat-container absolute w-24 h-24 md:w-32 md:h-32 z-10`;
+                catContainer.style.top = pos.top;
+                if(pos.left) catContainer.style.left = pos.left;
+                if(pos.right) catContainer.style.right = pos.right;
+
+                // Inner part has the float animation and styling
+                const catInner = document.createElement('div');
+                catInner.className = `w-full h-full rounded-full border-4 border-rose-400/50 shadow-2xl overflow-hidden cursor-pointer hover:scale-110 transition-transform duration-300 ${pos.anim}`;
+                catInner.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
+
+                catContainer.appendChild(catInner);
+                
+                // Interaction
+                catInner.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const bubble = document.createElement('div');
+                    bubble.textContent = ["Meow!", "❤️", "Prrr...", "Love you!"][Math.floor(Math.random()*4)];
+                    bubble.className = 'absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-rose-900 px-3 py-1 rounded-full text-xs font-bold animate-bounce shadow-lg whitespace-nowrap z-50';
+                    catContainer.appendChild(bubble);
+                    setTimeout(() => bubble.remove(), 2000);
+                });
+
+                layer.appendChild(catContainer);
+                catsElements.push({ el: catContainer, speed: pos.speed });
+            });
+
+            // Enhanced Scroll Reaction
+            let lastScrollY = window.scrollY;
+            window.addEventListener('scroll', () => {
+                const scrollY = window.scrollY;
+                const delta = scrollY - lastScrollY;
+                lastScrollY = scrollY;
+                
+                // Subtle physics: Parallax movement + slight rotation based on scroll velocity
+                catsElements.forEach(cat => {
+                    const yOffset = scrollY * cat.speed * 0.15;
+                    // Limit rotation to avoid dizziness
+                    const rotation = Math.max(-5, Math.min(5, delta * 0.1)); 
+                    cat.el.style.transform = `translateY(${yOffset}px) rotate(${rotation}deg)`;
+                });
+            });
+        }
+
+        // 6. Envelopes
+        function renderEnvelopes() {
+            const grid = document.getElementById('envelope-grid');
+            LOVE_LETTERS.forEach(letter => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'envelope-wrapper relative h-48 w-full perspective-1000 cursor-pointer group';
+                wrapper.innerHTML = `
+                    <div class="envelope-inner w-full h-full relative preserve-3d shadow-xl">
+                        <div class="absolute inset-0 backface-hidden bg-rose-950 border border-rose-500/30 rounded-lg flex flex-col items-center justify-center group-hover:shadow-[0_0_20px_rgba(225,29,72,0.3)] transition-shadow">
+                            <span class="text-4xl mb-2">💌</span>
+                            <span class="text-xs font-serif text-rose-400 tracking-widest uppercase">Open Me</span>
+                        </div>
+                        <div class="absolute inset-0 backface-hidden bg-rose-100 rounded-lg p-6 flex items-center justify-center text-center rotate-y-180">
+                             <div class="border-2 border-rose-300 h-full w-full flex items-center justify-center p-2 rounded">
+                                <p class="font-serif text-rose-900 text-sm italic">"${letter}"</p>
+                             </div>
+                        </div>
+                    </div>
+                `;
+                wrapper.addEventListener('click', () => {
+                    wrapper.classList.toggle('is-open');
+                });
+                grid.appendChild(wrapper);
+            });
+        }
+
+        // 7. Proposal
+        function initProposal() {
+            const noBtn = document.getElementById('no-btn');
+            
+            const runAway = (e) => {
+                const x = (Math.random() * 200 - 100);
+                const y = (Math.random() * 200 - 100);
+                noBtn.style.transform = `translate(${x}px, ${y}px)`;
+            };
+
+            noBtn.addEventListener('mouseenter', runAway);
+            noBtn.addEventListener('touchstart', runAway);
+        }
+
+        window.acceptProposal = function() {
+            const content = document.getElementById('proposal-content');
+            const success = document.getElementById('success-message');
+            
+            content.style.opacity = '0';
+            setTimeout(() => {
+                content.style.display = 'none';
+                success.classList.remove('hidden');
+                
+                // Confetti
+                const duration = 5000;
+                const end = Date.now() + duration;
+
+                (function frame() {
+                    confetti({
+                        particleCount: 5,
+                        angle: 60,
+                        spread: 55,
+                        origin: { x: 0 },
+                        colors: ['#b76e79', '#d4af37']
+                    });
+                    confetti({
+                        particleCount: 5,
+                        angle: 120,
+                        spread: 55,
+                        origin: { x: 1 },
+                        colors: ['#b76e79', '#d4af37']
+                    });
+
+                    if (Date.now() < end) {
+                        requestAnimationFrame(frame);
+                    }
+                }());
+            }, 1000);
+        };
+
+        // 8. Rose Petals Canvas
+        function initParticles() {
+            const canvas = document.getElementById('rose-petals');
+            const ctx = canvas.getContext('2d');
+            let width = window.innerWidth;
+            let height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+
+            const petals = [];
+            for (let i = 0; i < 40; i++) {
+                petals.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    size: Math.random() * 10 + 5,
+                    speed: Math.random() * 2 + 0.5,
+                    opacity: Math.random() * 0.5 + 0.1,
+                    rotation: Math.random() * 360
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+                petals.forEach(p => {
+                    p.y += p.speed;
+                    p.rotation += 1;
+                    if (p.y > height) p.y = -10;
+                    
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rotation * Math.PI / 180);
+                    ctx.fillStyle = `rgba(183, 110, 121, ${p.opacity})`;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, p.size, p.size/2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
+            
+            window.addEventListener('resize', () => {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+            });
+        }
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
